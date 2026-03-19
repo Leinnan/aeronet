@@ -1,0 +1,55 @@
+[package]
+name = "aeronet_iroh"
+version = "0.19.1"
+edition.workspace = true
+rust-version.workspace = true
+description = "iroh IO layer implementation for `aeronet`"
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg=docsrs_aeronet"]
+
+[[example]]
+name = "iroh_client"
+path = "examples/iroh_client.rs"
+required-features = ["client"]
+
+[[example]]
+name = "iroh_server"
+path = "examples/iroh_server.rs"
+required-features = ["server"]
+
+[features]
+default = ["client", "server"]
+client = []
+server = []
+discovery = ["dep:iroh-gossip", "dep:blake3", "dep:postcard", "dep:serde"]
+
+[dependencies]
+aeronet_io = { workspace = true }
+anyhow = { workspace = true }
+bevy_app = { workspace = true }
+bevy_ecs = { workspace = true }
+bevy_reflect = { workspace = true }
+bevy_platform = { workspace = true }
+bytes = { workspace = true }
+derive_more = { workspace = true, features = ["display", "error"] }
+futures = { workspace = true }
+iroh = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "sync", "time"] }
+tracing = { workspace = true }
+iroh-gossip = { workspace = true, optional = true }
+blake3 = { workspace = true, optional = true }
+postcard = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+bevy = { workspace = true }
+
+[lints]
+workspace = true
