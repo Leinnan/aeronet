@@ -27,7 +27,7 @@ required-features = ["server"]
 default = ["client", "server"]
 client = []
 server = []
-discovery = ["dep:iroh-gossip", "dep:blake3", "dep:postcard", "dep:serde"]
+discovery = ["dep:iroh-gossip", "dep:blake3", "dep:postcard", "dep:serde", "iroh/address-lookup-mdns"]
 
 [dependencies]
 aeronet_io = { workspace = true }
