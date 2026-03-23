@@ -37,7 +37,7 @@ impl ServerConfiguration {
 
 impl Into<iroh::endpoint::Builder> for ServerConfiguration {
     fn into(self) -> iroh::endpoint::Builder {
-        let mut endpoint_builder = iroh::Endpoint::builder().alpns(
+        let mut endpoint_builder = iroh::Endpoint::builder(iroh::endpoint::presets::N0).alpns(
             self.alpns
                 .iter()
                 .map(|alpn| alpn.as_bytes().to_vec())

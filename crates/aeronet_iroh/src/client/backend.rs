@@ -35,7 +35,7 @@ pub async fn start(
         initial_peer_addr: selected_path
             .as_ref()
             .and_then(crate::session::path_socket_addr),
-        initial_rtt: selected_path.as_ref().map(iroh::endpoint::PathInfo::rtt),
+        initial_rtt: selected_path.as_ref().and_then(iroh::endpoint::PathInfo::rtt),
         remote_id: conn.remote_id(),
         initial_mtu: conn
             .max_datagram_size()

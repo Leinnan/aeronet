@@ -6,7 +6,10 @@ pub mod config;
 use {
     crate::{
         runtime::IrohRuntime,
-        session::{self, IrohIo, IrohSessionPlugin, MIN_MTU, SessionError, SessionMeta},
+        session::{
+            self, IrohIo, IrohSessionPlugin, MIN_MTU, RemoteEndpointId, SessionError,
+            SessionEstablished, SessionMeta,
+        },
     },
     aeronet_io::{
         IoSystems, Session, SessionEndpoint,
@@ -175,6 +178,7 @@ struct Opened {
 
 #[derive(Debug, Component)]
 struct Connecting {
+    remote_id: EndpointId,
     rx_dc_reason: oneshot::Receiver<DisconnectReason>,
     rx_next: oneshot::Receiver<ToConnected>,
 }
@@ -256,10 +260,16 @@ fn poll_opened(
                 .spawn((
                     ChildOf(entity),
                     IrohServerClient(()),
+                    // Store remote_id in Connecting so poll_connecting can use it
+                    // when firing SessionEstablished after the handshake completes.
                     Connecting {
+                        remote_id: connecting.remote_id,
                         rx_dc_reason: connecting.rx_dc_reason,
                         rx_next: connecting.rx_next,
                     },
+                    // Insert RemoteEndpointId immediately — available before the
+                    // session is accepted, so SessionRequest observers can read it.
+                    RemoteEndpointId(connecting.remote_id),
                 ))
                 .id();
             _ = connecting.tx_session_entity.send(client);
@@ -313,9 +323,12 @@ fn poll_connecting(
             continue;
         }
 
+        let remote_id = client.remote_id;
         let (_, dummy) = oneshot::channel();
         let rx_dc = mem::replace(&mut client.rx_dc_reason, dummy);
         let mut entity_commands = commands.entity(entity);
+        // RemoteEndpointId was already inserted in poll_opened; re-inserting here
+        // is a no-op but makes the component lifecycle explicit.
         entity_commands.remove::<Connecting>().insert((
             IrohIo {
                 rx_meta: next.rx_meta,
@@ -334,6 +347,15 @@ fn poll_connecting(
         if let Some(rtt) = next.initial_rtt {
             entity_commands.insert(PacketRtt(rtt));
         }
+
+        // Notify integration layers that this server-side session is established.
+        commands.trigger(SessionEstablished {
+            entity,
+            remote_id,
+            peer_addr: next.initial_peer_addr,
+            initial_rtt: next.initial_rtt,
+            mtu: next.initial_mtu,
+        });
     }
 }
 

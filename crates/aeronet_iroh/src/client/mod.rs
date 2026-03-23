@@ -5,7 +5,10 @@ mod backend;
 use {
     crate::{
         runtime::IrohRuntime,
-        session::{self, IrohIo, IrohSessionPlugin, MIN_MTU, SessionError, SessionMeta},
+        session::{
+            self, IrohIo, IrohSessionPlugin, MIN_MTU, RemoteEndpointId, SessionError,
+            SessionEstablished, SessionMeta,
+        },
     },
     aeronet_io::{
         IoSystems, Session, SessionEndpoint,
@@ -106,7 +109,6 @@ struct Connected {
 struct ToConnected {
     initial_peer_addr: Option<SocketAddr>,
     initial_rtt: Option<Duration>,
-    #[expect(dead_code, reason = "kept for downstream inspection and future use")]
     remote_id: EndpointId,
     initial_mtu: usize,
     rx_meta: mpsc::Receiver<SessionMeta>,
@@ -148,6 +150,7 @@ fn poll_connecting(
                 tx_user_dc: Some(next.tx_user_dc),
             },
             Connected { rx_dc_reason },
+            RemoteEndpointId(next.remote_id),
             session,
         ));
         if let Some(peer_addr) = next.initial_peer_addr {
@@ -156,6 +159,15 @@ fn poll_connecting(
         if let Some(rtt) = next.initial_rtt {
             entity_commands.insert(PacketRtt(rtt));
         }
+
+        // Notify integration layers that this session is fully established.
+        commands.trigger(SessionEstablished {
+            entity,
+            remote_id: next.remote_id,
+            peer_addr: next.initial_peer_addr,
+            initial_rtt: next.initial_rtt,
+            mtu: next.initial_mtu,
+        });
     }
 }
 
