@@ -15,7 +15,7 @@ const ALPN: &[u8] = b"aeronet/example/iroh";
 fn main() -> AppExit {
     let runtime = tokio::runtime::Runtime::new().expect("failed to create tokio runtime");
     let endpoint = runtime.block_on(async {
-        iroh::Endpoint::builder()
+        iroh::Endpoint::builder(iroh::endpoint::presets::N0)
             .bind()
             .await
             .expect("failed to bind client endpoint")

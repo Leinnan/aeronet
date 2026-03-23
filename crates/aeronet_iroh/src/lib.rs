@@ -13,6 +13,7 @@ pub mod session;
 
 pub use iroh;
 pub use runtime::IrohRuntime;
+pub use session::{RemoteEndpointId, SessionEstablished};
 
 #[cfg(feature = "discovery")]
 pub use discovery::{

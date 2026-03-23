@@ -24,7 +24,7 @@ struct Finished(bool);
 fn connect_and_ping_pong() {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let server_endpoint = runtime.block_on(async {
-        iroh::Endpoint::builder()
+        iroh::Endpoint::builder(iroh::endpoint::presets::N0DisableRelay)
             .alpns(vec![ALPN.to_vec()])
             .clear_relay_transports()
             .bind()
@@ -32,7 +32,7 @@ fn connect_and_ping_pong() {
             .unwrap()
     });
     let client_endpoint = runtime.block_on(async {
-        iroh::Endpoint::builder()
+        iroh::Endpoint::builder(iroh::endpoint::presets::N0DisableRelay)
             .clear_relay_transports()
             .bind()
             .await

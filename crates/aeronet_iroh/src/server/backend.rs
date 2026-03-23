@@ -76,7 +76,10 @@ async fn accept_session(
     mut tx_connecting: mpsc::Sender<ToConnecting>,
     #[cfg(feature = "discovery")] gossip: Option<iroh_gossip::net::Gossip>,
 ) -> Result<(), CloseReason> {
-    let remote_addr = Some(incoming.remote_address());
+    let remote_addr = match incoming.remote_addr() {
+        iroh::endpoint::IncomingAddr::Ip(addr) => Some(addr),
+        _ => None,
+    };
     let conn = incoming.await.map_err(ServerError::Accept)?;
 
     // When the discovery feature is enabled and a gossip handle is present,
@@ -156,7 +159,7 @@ async fn handle_session(
         initial_peer_addr: selected_path
             .as_ref()
             .and_then(crate::session::path_socket_addr),
-        initial_rtt: selected_path.as_ref().map(iroh::endpoint::PathInfo::rtt),
+        initial_rtt: selected_path.as_ref().and_then(iroh::endpoint::PathInfo::rtt),
         initial_mtu: conn
             .max_datagram_size()
             .ok_or(SessionError::DatagramsNotSupported)?,

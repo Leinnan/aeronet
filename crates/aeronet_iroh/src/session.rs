@@ -21,11 +21,60 @@ use {
         never::Never,
     },
     iroh::{
-        TransportAddr, Watcher,
+        EndpointId, TransportAddr, Watcher,
         endpoint::{Connection, ConnectionError, SendDatagramError, VarInt},
     },
     tracing::{trace, trace_span},
 };
+
+// ── Public session identity types ─────────────────────────────────────────────
+
+/// The iroh [`EndpointId`] (public key) of the remote peer for this session.
+///
+/// Always inserted on every session entity (both client and server-side)
+/// when the QUIC handshake completes. Unlike [`PeerAddr`], this is available
+/// for both direct-connected and relay-only sessions.
+///
+/// Integration layers (e.g. `lightyear_iroh`) can use this to derive a stable
+/// peer identity without querying for optional socket-address components.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
+pub struct RemoteEndpointId(pub EndpointId);
+
+/// Triggered on a session entity when the QUIC handshake completes and the
+/// session is ready for datagram exchange.
+///
+/// Fires during `IoSystems::Poll` on the same frame as the transition
+/// from `Connecting` → `Connected`. The `entity` field (and trigger target)
+/// is the session entity — the same one that will receive [`Session`],
+/// [`PeerAddr`], [`RemoteEndpointId`], etc. on the same frame.
+///
+/// This is the recommended hook point for integration layers instead of
+/// `On<Add, Session>` with fragile optional-component queries, because it
+/// carries all session metadata as fields regardless of whether a direct
+/// socket address is available.
+///
+/// # Example
+/// ```rust,ignore
+/// app.add_observer(|trigger: On<SessionEstablished>, mut commands: Commands| {
+///     let session_entity = trigger.entity;
+///     println!("Session established with peer {}", trigger.event().remote_id);
+/// });
+/// ```
+#[derive(Debug, Clone, EntityEvent)]
+pub struct SessionEstablished {
+    /// The session entity that was just established.
+    pub entity: Entity,
+    /// The remote peer's iroh endpoint identity (always available).
+    pub remote_id: EndpointId,
+    /// Direct socket address of the peer, if a direct path was selected.
+    ///
+    /// `None` for relay-only connections where no direct socket path exists.
+    pub peer_addr: Option<SocketAddr>,
+    /// Initial round-trip time estimate, if available.
+    pub initial_rtt: Option<Duration>,
+    /// Initial maximum datagram size for this connection.
+    pub mtu: usize,
+}
 
 pub(crate) struct IrohSessionPlugin;
 
@@ -261,7 +310,9 @@ async fn meta_loop(
         let selected_path = paths.iter().find(|path| path.is_selected()).cloned();
         let meta = SessionMeta {
             peer_addr: selected_path.as_ref().and_then(path_socket_addr),
-            packet_rtt: selected_path.as_ref().map(iroh::endpoint::PathInfo::rtt),
+            packet_rtt: selected_path
+                .as_ref()
+                .and_then(iroh::endpoint::PathInfo::rtt),
             mtu: conn
                 .max_datagram_size()
                 .ok_or(SessionError::DatagramsNotSupported)?,
