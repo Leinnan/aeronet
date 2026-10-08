@@ -30,7 +30,9 @@ server = []
 discovery = ["dep:iroh-gossip", "dep:blake3", "dep:postcard", "dep:serde", "dep:iroh-mdns-address-lookup"]
 
 [dependencies]
-aeronet_io = { workspace = true }
+# crates.io release (identical to crates/aeronet_io) so that lightyear_aeronet and
+# aeronet_iroh share one copy of aeronet_io when used from git.
+aeronet_io = { version = "0.21", default-features = false }
 anyhow = { workspace = true }
 bevy_app = { workspace = true }
 bevy_ecs = { workspace = true }

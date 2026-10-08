@@ -123,7 +123,7 @@ dependencies = [
 name = "aeronet"
 version = "0.21.0"
 dependencies = [
- "aeronet_io",
+ "aeronet_io 0.21.0",
  "aeronet_transport",
  "bevy_app",
  "document-features",
@@ -133,7 +133,7 @@ dependencies = [
 name = "aeronet_channel"
 version = "0.21.0"
 dependencies = [
- "aeronet_io",
+ "aeronet_io 0.21.0",
  "bevy",
  "bevy_app",
  "bevy_ecs",
@@ -162,10 +162,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "aeronet_io"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d04965191fb40bbe69e1a81111849242614eb256aee64220b3b06a8ff8bc8a5b"
+dependencies = [
+ "anyhow",
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_platform",
+ "bevy_reflect",
+ "bytes",
+ "derive_more",
+ "log",
+]
+
+[[package]]
 name = "aeronet_iroh"
 version = "0.19.1"
 dependencies = [
- "aeronet_io",
+ "aeronet_io 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "anyhow",
  "bevy",
  "bevy_app",
@@ -190,7 +206,7 @@ name = "aeronet_replicon"
 version = "0.21.0"
 dependencies = [
  "aeronet_channel",
- "aeronet_io",
+ "aeronet_io 0.21.0",
  "aeronet_transport",
  "bevy",
  "bevy_app",
@@ -207,7 +223,7 @@ dependencies = [
 name = "aeronet_steam"
 version = "0.21.0"
 dependencies = [
- "aeronet_io",
+ "aeronet_io 0.21.0",
  "anyhow",
  "bevy",
  "bevy_app",
@@ -228,7 +244,7 @@ dependencies = [
 name = "aeronet_transport"
 version = "0.21.0"
 dependencies = [
- "aeronet_io",
+ "aeronet_io 0.21.0",
  "arbitrary",
  "bevy_app",
  "bevy_ecs",
@@ -256,7 +272,7 @@ dependencies = [
 name = "aeronet_websocket"
 version = "0.21.0"
 dependencies = [
- "aeronet_io",
+ "aeronet_io 0.21.0",
  "bevy",
  "bevy_app",
  "bevy_ecs",
@@ -284,7 +300,7 @@ dependencies = [
 name = "aeronet_webtransport"
 version = "0.21.0"
 dependencies = [
- "aeronet_io",
+ "aeronet_io 0.21.0",
  "anyhow",
  "base64 0.22.1",
  "bevy",
