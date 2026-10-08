@@ -27,7 +27,7 @@ required-features = ["server"]
 default = ["client", "server"]
 client = []
 server = []
-discovery = ["dep:iroh-gossip", "dep:blake3", "dep:postcard", "dep:serde", "iroh/address-lookup-mdns"]
+discovery = ["dep:iroh-gossip", "dep:blake3", "dep:postcard", "dep:serde", "dep:iroh-mdns-address-lookup"]
 
 [dependencies]
 aeronet_io = { workspace = true }
@@ -43,6 +43,7 @@ iroh = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "sync", "time"] }
 tracing = { workspace = true }
 iroh-gossip = { workspace = true, optional = true }
+iroh-mdns-address-lookup = { workspace = true, optional = true }
 blake3 = { workspace = true, optional = true }
 postcard = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }

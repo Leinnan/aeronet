@@ -21,7 +21,7 @@ use {
         never::Never,
     },
     iroh::{
-        EndpointId, TransportAddr, Watcher,
+        EndpointId, TransportAddr,
         endpoint::{Connection, ConnectionError, SendDatagramError, VarInt},
     },
     tracing::{trace, trace_span},
@@ -305,14 +305,10 @@ async fn meta_loop(
             _ = rx_closed => return Err(SessionError::FrontendClosed),
         };
 
-        let mut paths = conn.paths();
-        let paths = paths.get();
-        let selected_path = paths.iter().find(|path| path.is_selected()).cloned();
+        let (peer_addr, packet_rtt) = selected_path(&conn);
         let meta = SessionMeta {
-            peer_addr: selected_path.as_ref().and_then(path_socket_addr),
-            packet_rtt: selected_path
-                .as_ref()
-                .and_then(iroh::endpoint::PathInfo::rtt),
+            peer_addr,
+            packet_rtt,
             mtu: conn
                 .max_datagram_size()
                 .ok_or(SessionError::DatagramsNotSupported)?,
@@ -392,9 +388,17 @@ async fn disconnect(conn: Connection, reason: &str) {
     _ = conn.closed().await;
 }
 
-pub(crate) fn path_socket_addr(path: &iroh::endpoint::PathInfo) -> Option<SocketAddr> {
-    match path.remote_addr() {
+/// Socket address and RTT of the connection's currently selected path.
+///
+/// The address is `None` when the selected path goes through a relay.
+pub(crate) fn selected_path(conn: &Connection) -> (Option<SocketAddr>, Option<Duration>) {
+    let paths = conn.paths();
+    let Some(path) = paths.iter().find(iroh::endpoint::Path::is_selected) else {
+        return (None, None);
+    };
+    let addr = match path.remote_addr() {
         TransportAddr::Ip(addr) => Some(*addr),
         _ => None,
-    }
+    };
+    (addr, Some(path.rtt()))
 }

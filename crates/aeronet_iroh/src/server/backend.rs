@@ -12,7 +12,7 @@ use {
         channel::{mpsc, oneshot},
         never::Never,
     },
-    iroh::{Endpoint, Watcher},
+    iroh::Endpoint,
     tracing::{Instrument, debug, debug_span},
 };
 
@@ -96,9 +96,7 @@ async fn accept_session(
     }
     let alpn = conn.alpn().to_vec();
     let remote_id = conn.remote_id();
-    let mut paths = conn.paths();
-    let paths = paths.get();
-    let selected_path = paths.iter().find(|path| path.is_selected()).cloned();
+    let (selected_addr, _) = crate::session::selected_path(&conn);
 
     let (tx_session_entity, rx_session_entity) = oneshot::channel::<Entity>();
     let (tx_session_response, rx_session_response) = oneshot::channel::<SessionResponse>();
@@ -108,10 +106,7 @@ async fn accept_session(
         .send(ToConnecting {
             remote_id,
             alpn,
-            remote_addr: selected_path
-                .as_ref()
-                .and_then(crate::session::path_socket_addr)
-                .or(remote_addr),
+            remote_addr: selected_addr.or(remote_addr),
             tx_session_entity,
             tx_session_response,
             rx_dc_reason,
@@ -148,18 +143,14 @@ async fn handle_session(
         return Err(ServerError::Rejected.into());
     }
 
-    let mut paths = conn.paths();
-    let paths = paths.get();
-    let selected_path = paths.iter().find(|path| path.is_selected()).cloned();
+    let (initial_peer_addr, initial_rtt) = crate::session::selected_path(&conn);
     let (tx_meta, rx_meta) = mpsc::channel::<SessionMeta>(1);
     let (tx_packet_b2f, rx_packet_b2f) = mpsc::unbounded::<RecvPacket>();
     let (tx_packet_f2b, rx_packet_f2b) = mpsc::unbounded::<Bytes>();
     let (tx_user_dc, rx_user_dc) = oneshot::channel::<String>();
     let next = ToConnected {
-        initial_peer_addr: selected_path
-            .as_ref()
-            .and_then(crate::session::path_socket_addr),
-        initial_rtt: selected_path.as_ref().and_then(iroh::endpoint::PathInfo::rtt),
+        initial_peer_addr,
+        initial_rtt,
         initial_mtu: conn
             .max_datagram_size()
             .ok_or(SessionError::DatagramsNotSupported)?,

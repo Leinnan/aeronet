@@ -7,7 +7,7 @@ use {
         channel::{mpsc, oneshot},
         never::Never,
     },
-    iroh::{Endpoint, EndpointAddr, Watcher},
+    iroh::{Endpoint, EndpointAddr},
     tracing::debug,
 };
 
@@ -24,18 +24,14 @@ pub async fn start(
         .map_err(ClientError::Connect)?;
     debug!("Connected");
 
-    let mut paths = conn.paths();
-    let paths = paths.get();
-    let selected_path = paths.iter().find(|path| path.is_selected()).cloned();
+    let (initial_peer_addr, initial_rtt) = crate::session::selected_path(&conn);
     let (tx_meta, rx_meta) = mpsc::channel::<SessionMeta>(1);
     let (tx_packet_b2f, rx_packet_b2f) = mpsc::unbounded::<RecvPacket>();
     let (tx_packet_f2b, rx_packet_f2b) = mpsc::unbounded::<Bytes>();
     let (tx_user_dc, rx_user_dc) = oneshot::channel::<String>();
     let next = ToConnected {
-        initial_peer_addr: selected_path
-            .as_ref()
-            .and_then(crate::session::path_socket_addr),
-        initial_rtt: selected_path.as_ref().and_then(iroh::endpoint::PathInfo::rtt),
+        initial_peer_addr,
+        initial_rtt,
         remote_id: conn.remote_id(),
         initial_mtu: conn
             .max_datagram_size()
