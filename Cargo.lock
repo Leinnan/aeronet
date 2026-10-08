@@ -179,7 +179,7 @@ dependencies = [
 
 [[package]]
 name = "aeronet_iroh"
-version = "0.19.1"
+version = "0.21.0"
 dependencies = [
  "aeronet_io 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "anyhow",
