@@ -18,6 +18,12 @@ targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 name = "iroh_peer"
 path = "examples/iroh_peer.rs"
 
+[features]
+## Enables room discovery over [`iroh-gossip`](https://docs.rs/iroh-gossip).
+##
+## Only available on native targets.
+discovery = ["dep:blake3", "dep:iroh-gossip", "dep:postcard", "dep:serde"]
+
 [dependencies]
 aeronet_io = { workspace = true }
 aeronet_tokio_runtime = { workspace = true }
@@ -29,6 +35,12 @@ derive_more = { workspace = true, features = ["display", "error"] }
 futures = { workspace = true }
 iroh = { workspace = true }
 tracing = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+blake3 = { workspace = true, optional = true }
+iroh-gossip = { workspace = true, optional = true }
+postcard = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 bevy = { workspace = true }

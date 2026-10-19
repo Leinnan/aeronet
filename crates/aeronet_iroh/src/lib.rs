@@ -10,6 +10,8 @@
 
 extern crate alloc;
 
+#[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+pub mod discovery;
 pub mod endpoint;
 pub mod session;
 
@@ -22,5 +24,7 @@ pub struct IrohPlugin;
 impl Plugin for IrohPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((session::IrohSessionPlugin, endpoint::IrohEndpointPlugin));
+        #[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+        app.add_plugins(discovery::IrohDiscoveryPlugin);
     }
 }

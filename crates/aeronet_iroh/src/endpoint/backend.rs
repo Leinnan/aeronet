@@ -11,8 +11,16 @@ use {
     tracing::{Instrument, debug, debug_span},
 };
 
+#[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+type Gossip = iroh_gossip::net::Gossip;
+/// Uninhabited stand-in when discovery is disabled.
+#[cfg(not(all(feature = "discovery", not(target_family = "wasm"))))]
+#[derive(Debug, Clone)]
+enum Gossip {}
+
 pub async fn start(
     builder: Builder,
+    discovery: bool,
     tx_next: oneshot::Sender<ToOpen>,
 ) -> Result<Never, EndpointError> {
     debug!("Spawning backend task to open endpoint");
@@ -20,11 +28,15 @@ pub async fn start(
     let endpoint = builder.bind().await.map_err(EndpointError::Bind)?;
     debug!(id = %endpoint.id(), "Opened endpoint");
 
+    let gossip = spawn_gossip(&endpoint, discovery);
+
     let (tx_connecting, rx_connecting) = mpsc::channel(1);
     let (tx_dropped, mut rx_dropped) = mpsc::channel::<()>(0);
     tx_next
         .send(ToOpen {
             endpoint: endpoint.clone(),
+            #[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+            gossip: gossip.clone(),
             rx_connecting,
             tx_dropped,
         })
@@ -43,8 +55,9 @@ pub async fn start(
 
         IrohRuntime::spawn({
             let tx_connecting = tx_connecting.clone();
+            let gossip = gossip.clone();
             async move {
-                if let Err(err) = accept_session(incoming, tx_connecting).await {
+                if let Err(err) = accept_session(incoming, tx_connecting, gossip).await {
                     debug!("Failed to accept session: {err:?}");
                 }
             }
@@ -55,8 +68,22 @@ pub async fn start(
 async fn accept_session(
     incoming: Incoming,
     mut tx_connecting: mpsc::Sender<ToConnecting>,
+    gossip: Option<Gossip>,
 ) -> Result<(), DisconnectReason> {
     let conn = incoming.await.map_err(session::SessionError::Accept)?;
+
+    // Gossip connections belong to the discovery swarm, not to the app.
+    #[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+    if conn.alpn() == iroh_gossip::net::GOSSIP_ALPN
+        && let Some(gossip) = gossip
+    {
+        if let Err(err) = gossip.handle_connection(conn).await {
+            debug!("Gossip failed to handle connection: {err:?}");
+        }
+        return Ok(());
+    }
+    #[cfg(not(all(feature = "discovery", not(target_family = "wasm"))))]
+    let _ = gossip;
     let peer_id = conn.remote_id();
 
     let (tx_response, rx_response) = oneshot::channel();
@@ -77,4 +104,17 @@ async fn accept_session(
         .await;
     _ = tx_dc_reason.send(reason);
     Ok(())
+}
+
+#[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+fn spawn_gossip(endpoint: &iroh::Endpoint, discovery: bool) -> Option<Gossip> {
+    discovery.then(|| {
+        debug!("Spawning gossip actor for discovery");
+        Gossip::builder().spawn(endpoint.clone())
+    })
+}
+
+#[cfg(not(all(feature = "discovery", not(target_family = "wasm"))))]
+const fn spawn_gossip(_: &iroh::Endpoint, _: bool) -> Option<Gossip> {
+    None
 }

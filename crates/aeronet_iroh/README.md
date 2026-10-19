@@ -54,6 +54,10 @@ Then connect a second peer to that endpoint:
 cargo run --example iroh_peer -- --remote ENDPOINT
 ```
 
+## Discovery
+
+With the `discovery` feature (native only), endpoints can announce and search for rooms over [`iroh-gossip`](https://docs.rs/iroh-gossip). Open the endpoint with [`IrohEndpoint::open_with_discovery`](https://docs.rs/aeronet_iroh/latest/aeronet_iroh/endpoint/struct.IrohEndpoint.html#method.open_with_discovery), and add [`GOSSIP_ALPN`](https://docs.rs/iroh-gossip/latest/iroh_gossip/net/constant.GOSSIP_ALPN.html) to the builder's ALPNs. Once the endpoint has a `GossipHandle`, spawn [`AnnounceRoom`](https://docs.rs/aeronet_iroh/latest/aeronet_iroh/discovery/announce/struct.AnnounceRoom.html) to host a room, or [`SearchRooms`](https://docs.rs/aeronet_iroh/latest/aeronet_iroh/discovery/search/struct.SearchRooms.html) to fill `DiscoveredRooms`. Gossip connections are routed to the gossip actor, and all other connections still trigger a `SessionRequest`.
+
 ## Compatibility
 
 | `aeronet_iroh` | `aeronet` | `bevy` | `iroh` |

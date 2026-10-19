@@ -89,7 +89,45 @@ impl IrohEndpoint {
     /// ```
     #[must_use]
     pub fn open(builder: Builder) -> impl EntityCommand {
-        move |entity: EntityWorldMut| open(entity, builder)
+        move |entity: EntityWorldMut| open(entity, builder, false)
+    }
+
+    /// Creates an [`EntityCommand`] to set up and open an endpoint which also
+    /// takes part in room discovery.
+    ///
+    /// This behaves like [`IrohEndpoint::open`], but additionally spawns an
+    /// [`iroh_gossip`] actor on the endpoint once it is bound, and inserts a
+    /// [`GossipHandle`](crate::discovery::GossipHandle) next to the
+    /// [`IrohEndpoint`]. Incoming connections using
+    /// [`GOSSIP_ALPN`](iroh_gossip::net::GOSSIP_ALPN) are routed to the gossip
+    /// actor instead of triggering a
+    /// [`SessionRequest`](session::SessionRequest).
+    ///
+    /// `builder` **must** accept [`GOSSIP_ALPN`](iroh_gossip::net::GOSSIP_ALPN)
+    /// in addition to your application's ALPNs, otherwise other peers cannot
+    /// join this endpoint's gossip swarm.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use {
+    ///     aeronet_iroh::endpoint::IrohEndpoint, bevy_ecs::prelude::*, iroh::endpoint::presets,
+    ///     iroh_gossip::net::GOSSIP_ALPN,
+    /// };
+    ///
+    /// # fn run(mut commands: Commands) {
+    /// const ALPN: &[u8] = b"my-game/0";
+    /// let builder =
+    ///     iroh::Endpoint::builder(presets::N0).alpns(vec![ALPN.to_vec(), GOSSIP_ALPN.to_vec()]);
+    /// commands
+    ///     .spawn_empty()
+    ///     .queue(IrohEndpoint::open_with_discovery(builder));
+    /// # }
+    /// ```
+    #[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+    #[must_use]
+    pub fn open_with_discovery(builder: Builder) -> impl EntityCommand {
+        move |entity: EntityWorldMut| open(entity, builder, true)
     }
 
     /// Creates an [`EntityCommand`] to connect a session entity to `target`.
@@ -205,6 +243,8 @@ struct Opened {
 #[derive(Debug)]
 struct ToOpen {
     endpoint: iroh::Endpoint,
+    #[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+    gossip: Option<iroh_gossip::net::Gossip>,
     rx_connecting: mpsc::Receiver<ToConnecting>,
     tx_dropped: mpsc::Sender<()>,
 }
@@ -217,13 +257,13 @@ struct ToConnecting {
     rx_next: oneshot::Receiver<session::ToConnected>,
 }
 
-fn open(mut entity: EntityWorldMut, builder: Builder) {
+fn open(mut entity: EntityWorldMut, builder: Builder, discovery: bool) {
     let runtime = entity.world().resource::<IrohRuntime>().clone();
     let (tx_error, rx_error) = oneshot::channel::<EndpointError>();
     let (tx_next, rx_next) = oneshot::channel::<ToOpen>();
     runtime.spawn_on_self(
         async move {
-            let Err(err) = backend::start(builder, tx_next).await;
+            let Err(err) = backend::start(builder, discovery, tx_next).await;
             debug!("Endpoint closed: {err:?}");
             _ = tx_error.send(err);
         }
@@ -244,7 +284,12 @@ fn poll_opening(mut commands: Commands, mut endpoints: Query<(Entity, &mut Openi
         };
         let (_, dummy) = oneshot::channel();
         let rx_error = mem::replace(&mut endpoint.rx_error, dummy);
-        commands.entity(entity).remove::<Opening>().insert((
+        let mut entity_commands = commands.entity(entity);
+        #[cfg(all(feature = "discovery", not(target_family = "wasm")))]
+        if let Some(gossip) = next.gossip {
+            entity_commands.insert(crate::discovery::GossipHandle::new(gossip));
+        }
+        entity_commands.remove::<Opening>().insert((
             IrohEndpoint {
                 entity,
                 raw: next.endpoint,
