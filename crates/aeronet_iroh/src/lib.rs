@@ -1,22 +1,26 @@
 #![cfg_attr(docsrs_aeronet, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+#![cfg_attr(
+    target_family = "wasm",
+    expect(
+        clippy::future_not_send,
+        reason = "`Send` and `Sync` are not used on WASM"
+    )
+)]
 
-//! iroh IO layer for `aeronet`.
+extern crate alloc;
 
-#[cfg(feature = "client")]
-pub mod client;
-#[cfg(feature = "discovery")]
-pub mod discovery;
-mod runtime;
-#[cfg(feature = "server")]
-pub mod server;
+pub mod endpoint;
 pub mod session;
 
-pub use iroh;
-pub use runtime::IrohRuntime;
-pub use session::{RemoteEndpointId, SessionEstablished};
+use bevy_app::prelude::*;
+pub use {aeronet_tokio_runtime::TokioRuntime as IrohRuntime, iroh};
 
-#[cfg(feature = "discovery")]
-pub use discovery::{
-    AnnounceRoom, DiscoveredRooms, DiscoveryConfig, GossipHandle, IrohDiscoveryPlugin, RoomAnnouncement,
-    RoomDiscovered, RoomInfo, RoomLost, SearchRooms,
-};
+/// Allows using Iroh endpoints and sessions.
+pub struct IrohPlugin;
+
+impl Plugin for IrohPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins((session::IrohSessionPlugin, endpoint::IrohEndpointPlugin));
+    }
+}

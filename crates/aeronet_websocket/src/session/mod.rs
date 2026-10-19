@@ -40,20 +40,6 @@ impl Plugin for WebSocketSessionPlugin {
             app.add_plugins(AeronetIoPlugin);
         }
 
-        #[cfg(not(target_family = "wasm"))]
-        {
-            use tracing::debug;
-
-            if rustls::crypto::aws_lc_rs::default_provider()
-                .install_default()
-                .is_ok()
-            {
-                debug!("Installed default `aws-lc-rs` CryptoProvider");
-            } else {
-                debug!("CryptoProvider is already installed");
-            }
-        }
-
         app.init_resource::<WebSocketRuntime>()
             .add_systems(PreUpdate, poll.in_set(IoSystems::Poll))
             .add_systems(PostUpdate, flush.in_set(IoSystems::Flush))
@@ -159,7 +145,7 @@ pub(crate) fn poll(mut sessions: Query<(Entity, &mut Session, &mut WebSocketIo)>
 
         let mut num_packets = Saturating(0);
         let mut num_bytes = Saturating(0);
-        while let Ok(Some(packet)) = io.rx_packet_b2f.try_next() {
+        while let Ok(packet) = io.rx_packet_b2f.try_recv() {
             num_packets += 1;
             session.stats.packets_recv += 1;
 

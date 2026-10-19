@@ -2,7 +2,7 @@
 //! servers.
 
 use {
-    crate::runtime::WebTransportRuntime,
+    crate::WebTransportRuntime,
     aeronet_io::{
         AeronetIoPlugin, IoSystems, Session,
         connection::{
@@ -163,7 +163,7 @@ pub(crate) fn poll(
         let span = trace_span!("poll", %entity);
         let _span = span.enter();
 
-        while let Ok(Some(meta)) = io.rx_meta.try_next() {
+        while let Ok(meta) = io.rx_meta.try_recv() {
             if let Err(err) = session.set_mtu(meta.mtu) {
                 commands.trigger(Disconnected {
                     entity,
@@ -186,7 +186,7 @@ pub(crate) fn poll(
 
         let mut num_packets = Saturating(0);
         let mut num_bytes = Saturating(0);
-        while let Ok(Some(packet)) = io.rx_packet_b2f.try_next() {
+        while let Ok(packet) = io.rx_packet_b2f.try_recv() {
             num_packets += 1;
             session.stats.packets_recv += 1;
 
@@ -462,8 +462,8 @@ async fn disconnect(conn: Arc<Connection>, reason: &str) {
         //
         // Tested: the server times us out instead of actually
         // reading the disconnect
-        conn.transport.close_with_info(&close_info);
-        _ = conn.transport.closed().await;
+        conn.transport_ref().close_with_info(&close_info);
+        _ = conn.transport_ref().closed().await;
     }
 
     #[cfg(not(target_family = "wasm"))]

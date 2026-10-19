@@ -23,6 +23,11 @@ name = "steam_server"
 path = "examples/steam_server.rs"
 required-features = ["server"]
 
+[[example]]
+name = "steam_dedicated_server"
+path = "examples/steam_dedicated_server.rs"
+required-features = ["server"]
+
 [dependencies]
 aeronet_io = { workspace = true }
 anyhow = { workspace = true }
@@ -31,13 +36,16 @@ bevy_ecs = { workspace = true }
 bevy_platform = { workspace = true }
 blocking = { workspace = true }
 bytes = { workspace = true }
-derive_more = { workspace = true, features = [
-  "debug",
-  "deref",
-  "deref_mut",
-  "display",
-  "error",
-] }
+derive_more = {
+  workspace = true,
+  features = [
+    "debug",
+    "deref",
+    "deref_mut",
+    "display",
+    "error",
+  ]
+}
 oneshot = { workspace = true }
 sync_wrapper = { workspace = true }
 tracing = { workspace = true }

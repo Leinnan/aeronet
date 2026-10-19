@@ -4,7 +4,7 @@ mod backend;
 
 use {
     crate::{
-        runtime::WebTransportRuntime,
+        WebTransportRuntime,
         session::{
             self, MIN_MTU, SessionError, SessionMeta, WebTransportIo, WebTransportSessionPlugin,
         },
@@ -166,7 +166,8 @@ pub enum SessionResponse {
 /// };
 ///
 /// fn on_session_request(mut trigger: On<SessionRequest>) {
-///     let client = trigger.event_target();
+///     let server = trigger.event_target();
+///     let session = trigger.session_entity;
 ///     trigger.respond(SessionResponse::Accepted);
 /// }
 /// ```
@@ -194,8 +195,11 @@ pub enum SessionResponse {
 #[derive(Debug, EntityEvent, Reflect)]
 #[reflect(from_reflect = false)]
 pub struct SessionRequest {
+    #[event_target]
+    /// [`Server`] entity receiving the request to connect.
+    pub server_entity: Entity,
     /// [`Session`] client entity requesting to connect.
-    pub entity: Entity,
+    pub session_entity: Entity,
     /// `:authority` header.
     pub authority: String,
     /// `:path` header.
@@ -349,7 +353,7 @@ fn poll_opened(
             continue;
         }
 
-        while let Ok(Some(connecting)) = server.rx_connecting.try_next() {
+        while let Ok(connecting) = server.rx_connecting.try_recv() {
             let client = commands
                 .spawn((
                     ChildOf(entity),
@@ -363,7 +367,8 @@ fn poll_opened(
             _ = connecting.tx_session_entity.send(client);
 
             commands.trigger(SessionRequest {
-                entity: client,
+                server_entity: entity,
+                session_entity: client,
                 authority: connecting.authority,
                 path: connecting.path,
                 origin: connecting.origin,

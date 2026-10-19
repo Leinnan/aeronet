@@ -10,8 +10,7 @@ extern crate alloc;
 pub mod client;
 pub mod session;
 
-mod runtime;
-pub use runtime::WebSocketRuntime;
+pub use aeronet_tokio_runtime::TokioRuntime as WebSocketRuntime;
 
 cfg_if::cfg_if! {
     if #[cfg(target_family = "wasm")] {
@@ -21,6 +20,8 @@ cfg_if::cfg_if! {
         #[cfg(feature = "server")]
         pub mod server;
 
-        pub use {tokio_tungstenite, tokio_tungstenite::tungstenite, rustls, rustls_native_certs};
+        pub use {rustls, tokio_tungstenite, tokio_tungstenite::tungstenite};
+        #[cfg(feature = "client")]
+        pub use rustls_native_certs;
     }
 }

@@ -84,6 +84,18 @@ cargo install wasm-server-runner
 cargo run --example webtransport_client -F client --target wasm32-unknown-unknown
 ```
 
+### [`aeronet_iroh`]
+
+| ✅ Complete | 🖥️ Native | 🌐 WASM |
+|------------|-----------|--------|
+
+Uses [Iroh] to establish authenticated peer-to-peer QUIC connections. Iroh attempts direct connections, including through NAT hole punching, and can fall back to an encrypted relay path when a direct path is unavailable. Each endpoint can both accept and initiate sessions; there is no dedicated server role.
+
+```sh
+cargo run --example iroh_peer
+cargo run --example iroh_peer -- --remote ENDPOINT
+```
+
 ### [`aeronet_steam`]
 
 | ✅ Complete | 🖥️ Native |
@@ -91,7 +103,7 @@ cargo run --example webtransport_client -F client --target wasm32-unknown-unknow
 
 Uses Steam's [networking sockets](https://partner.steamgames.com/doc/api/ISteamnetworkingSockets)
 
-You will need Steam running locally on your machine to be able to run the examples. If you want to test out peer-to-peer connections (not socket address connections), you will need to run two separate Steam clients using two separate Steam accounts  - see *Development Environment* for an easy way to achieve this.
+You will need Steam running locally on your machine to be able to run the examples. If you want to test out peer-to-peer connections (not socket address connections), you will need to run two separate Steam clients using two separate Steam accounts - see *Development Environment* for an easy way to achieve this.
 
 ```sh
 # run a server which listens on a socket address
@@ -215,11 +227,15 @@ Currently, the dev container requires Linux on Wayland with a GPU, as this is re
 
 When submitting a pull request, make sure that all continuous integration (CI) checks pass. CI is intentionally set to be as strict as reasonably possible, to keep the quality of code in `main` high.
 
+## AI usage
+
+We follow the same AI usage policy as Bevy - [see the AI usage policy here](https://bevy.org/learn/contribute/policies/ai/).
+
 # Versions
 
 | `bevy` | `aeronet`           |
 |--------|---------------------|
-| `0.19` | `0.21.0`            |
+| `0.19` | `0.21.0` - `0.22.0` |
 | `0.18` | `0.19.0`            |
 | `0.17` | `0.17.0` - `0.18.0` |
 | `0.16` | `0.13.0` - `0.16.0` |
@@ -231,6 +247,7 @@ When submitting a pull request, make sure that all continuous integration (CI) c
 [`aeronet_channel`]: https://docs.rs/aeronet_channel
 [`aeronet_websocket`]: https://docs.rs/aeronet_websocket
 [`aeronet_webtransport`]: https://docs.rs/aeronet_webtransport
+[`aeronet_iroh`]: https://docs.rs/aeronet_iroh
 [`aeronet_steam`]: https://docs.rs/aeronet_steam
 [`aeronet_replicon`]: https://docs.rs/aeronet_replicon
 [`bevy_replicon`]: https://docs.rs/bevy_replicon
@@ -241,3 +258,4 @@ When submitting a pull request, make sure that all continuous integration (CI) c
 [`echo_server.rs`]: ./examples/src/bin/echo_server.rs
 [`egui_plot`]: https://docs.rs/egui_plot
 [`cargo-fuzz`]: https://github.com/rust-fuzz/cargo-fuzz
+[Iroh]: https://iroh.computer
