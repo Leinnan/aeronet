@@ -1,3 +1,4 @@
+#![allow(clippy::arithmetic_side_effects, reason = "example code")]
 //! Example showing a WebSocket client which can send and receive UTF-8
 //! strings.
 
@@ -38,7 +39,7 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d);
 }
 
-fn on_connecting(trigger: On<Add, SessionEndpoint>, names: Query<&Name>, mut log: ResMut<Log>) {
+fn on_connecting(trigger: On<Add<SessionEndpoint>>, names: Query<&Name>, mut log: ResMut<Log>) {
     let target = trigger.event_target();
     let name = names
         .get(target)
@@ -46,7 +47,7 @@ fn on_connecting(trigger: On<Add, SessionEndpoint>, names: Query<&Name>, mut log
     log.push(format!("{name} connected"));
 }
 
-fn on_connected(trigger: On<Add, Session>, names: Query<&Name>, mut log: ResMut<Log>) {
+fn on_connected(trigger: On<Add<Session>>, names: Query<&Name>, mut log: ResMut<Log>) {
     let target = trigger.event_target();
     let name = names
         .get(target)

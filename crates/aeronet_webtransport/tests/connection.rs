@@ -35,7 +35,12 @@ fn connect() {
 
     _ = wtransport::tls::rustls::crypto::ring::default_provider().install_default();
     let identity = Identity::self_signed(["127.0.0.1", "::1", "localhost"]).unwrap();
-    let cert_hash = identity.certificate_chain().as_slice()[0].hash();
+    let cert_hash = identity
+        .certificate_chain()
+        .as_slice()
+        .first()
+        .expect("self-signed identity has a certificate")
+        .hash();
     ping_pong(
         ServerConfig::builder()
             .with_bind_default(PORT)
@@ -147,7 +152,7 @@ fn ping_pong(
         struct ClientEntity(Entity);
 
         fn on_add_server_endpoint(
-            trigger: On<Add, ServerEndpoint>,
+            trigger: On<Add<ServerEndpoint>>,
             expected_server: Res<ServerEntity>,
             mut seq: ResMut<SequenceTester<ServerEvent>>,
         ) {
@@ -156,7 +161,7 @@ fn ping_pong(
         }
 
         fn on_add_server(
-            trigger: On<Add, Server>,
+            trigger: On<Add<Server>>,
             expected_server: Res<ServerEntity>,
             mut seq: ResMut<SequenceTester<ServerEvent>>,
         ) {
@@ -166,7 +171,7 @@ fn ping_pong(
         }
 
         fn on_add_session_endpoint(
-            trigger: On<Add, SessionEndpoint>,
+            trigger: On<Add<SessionEndpoint>>,
             parents: Query<&ChildOf>,
             expected_server: Res<ServerEntity>,
             mut seq: ResMut<SequenceTester<ServerEvent>>,
@@ -201,7 +206,7 @@ fn ping_pong(
         }
 
         fn on_add_session(
-            trigger: On<Add, Session>,
+            trigger: On<Add<Session>>,
             expected_client: Res<ClientEntity>,
             mut seq: ResMut<SequenceTester<ServerEvent>>,
         ) {
@@ -258,7 +263,7 @@ fn ping_pong(
         struct ClientEntity(Entity);
 
         fn on_add_session_endpoint(
-            trigger: On<Add, SessionEndpoint>,
+            trigger: On<Add<SessionEndpoint>>,
             mut seq: ResMut<SequenceTester<ClientEvent>>,
             mut commands: Commands,
         ) {
@@ -268,7 +273,7 @@ fn ping_pong(
         }
 
         fn on_add_session(
-            trigger: On<Add, Session>,
+            trigger: On<Add<Session>>,
             expected_client: Res<ClientEntity>,
             mut seq: ResMut<SequenceTester<ClientEvent>>,
             mut sessions: Query<&mut Session>,

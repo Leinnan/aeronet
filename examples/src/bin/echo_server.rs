@@ -1,3 +1,4 @@
+#![allow(clippy::arithmetic_side_effects, reason = "example code")]
 //! Server which listens for client connections, and echoes back the UTF-8
 //! strings that they send.
 //!
@@ -99,7 +100,7 @@ fn setup(mut commands: Commands) {
 }
 
 // Observe state change events using `Trigger`s
-fn on_opened(trigger: On<Add, Server>, servers: Query<&LocalAddr>) {
+fn on_opened(trigger: On<Add<Server>>, servers: Query<&LocalAddr>) {
     let server = trigger.event_target();
     let local_addr = servers
         .get(server)
@@ -108,7 +109,7 @@ fn on_opened(trigger: On<Add, Server>, servers: Query<&LocalAddr>) {
 }
 
 fn on_connected(
-    trigger: On<Add, Session>,
+    trigger: On<Add<Session>>,
     sessions: Query<&Session>,
     clients: Query<&ChildOf>,
     mut commands: Commands,

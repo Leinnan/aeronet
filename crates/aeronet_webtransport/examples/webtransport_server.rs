@@ -1,3 +1,4 @@
+#![allow(clippy::arithmetic_side_effects, reason = "example code")]
 //! Example server using WebTransport which listens for clients sending strings
 //! and sends back a string reply.
 
@@ -44,7 +45,7 @@ fn main() -> AppExit {
 fn open_server(mut commands: Commands) {
     let identity = wtransport::Identity::self_signed(["localhost", "127.0.0.1", "::1"])
         .expect("all given SANs should be valid DNS names");
-    let cert = &identity.certificate_chain().as_slice()[0];
+    let cert = identity.certificate_chain().as_slice().first().expect("self-signed identity has a certificate");
     let spki_fingerprint = cert::spki_fingerprint_b64(cert).expect("should be a valid certificate");
     let cert_hash = cert::hash_to_b64(cert.hash());
     info!("************************");
@@ -71,7 +72,7 @@ fn server_config(identity: wtransport::Identity) -> ServerConfig {
 }
 
 fn on_opened(
-    trigger: On<Add, Server>,
+    trigger: On<Add<Server>>,
     servers: Query<&LocalAddr>,
     mut commands: Commands,
 ) {
@@ -99,7 +100,7 @@ fn on_session_request(mut request: On<SessionRequest>) {
     request.respond(SessionResponse::Accepted);
 }
 
-fn on_connected(trigger: On<Add, Session>, clients: Query<&ChildOf>) {
+fn on_connected(trigger: On<Add<Session>>, clients: Query<&ChildOf>) {
     let client = trigger.event_target();
     let Ok(&ChildOf(server)) = clients.get(client) else {
         return;
